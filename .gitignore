@@ -1,0 +1,67 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+*.bak
+*~
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swn
+.tmp/
+temp/
+tmp/
+
+# 日志文件
+*.log
+logs/
+log/
+
+# 缓存和编译文件
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.class
+*.jar
+*.war
+
+# 环境文件
+.env
+.env.local
+.env.*.local
+.secret
+config.local.*
+
+# 大文件（如果没使用Git LFS）
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.pth
+*.pt
+*.bin
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# 数据集中的原始大文件（建议单独处理）
+Datasets/raw/
+Datasets/original/
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+
+# 系统目录
+node_modules/
+vendor/
+dist/
+build/
+out/
