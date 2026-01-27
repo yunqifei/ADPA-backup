@@ -86,8 +86,24 @@ def get_tokenizer(
 
     if data_args.chat_template is not None:
         tokenizer.chat_template = data_args.chat_template
-    elif auto_set_chat_template and tokenizer.chat_template is None and tokenizer.default_chat_template is None:
-        tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
+    elif auto_set_chat_template:
+        # 检查chat_template是否存在，使用更兼容的方式
+        has_chat_template = False
+        try:
+            # 尝试获取chat_template
+            if hasattr(tokenizer, 'chat_template') and tokenizer.chat_template is not None:
+                has_chat_template = True
+            elif hasattr(tokenizer, 'get_chat_template'):
+                # 新版本transformers使用get_chat_template方法
+                template = tokenizer.get_chat_template()
+                if template is not None:
+                    has_chat_template = True
+        except Exception:
+            pass
+        
+        # 如果没有chat_template，设置默认的
+        if not has_chat_template:
+            tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
 
     return tokenizer
 

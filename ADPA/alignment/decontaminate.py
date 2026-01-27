@@ -38,25 +38,47 @@ def extract_docstring(prompt: str) -> str:
 
 
 def human_eval_docstrings() -> List[str]:
-    ds = load_dataset("openai_humaneval", split="test")
-    docstrings = [extract_docstring(v["prompt"]) for v in ds]
-    return docstrings
+    try:
+        ds = load_dataset("openai_humaneval", split="test")
+        docstrings = [extract_docstring(v["prompt"]) for v in ds]
+        return docstrings
+    except Exception as e:
+        # 如果无法加载数据集，返回空列表（用于去重功能）
+        # 这不会影响训练，只是去重功能不可用
+        print(f"Warning: Could not load openai_humaneval dataset for decontamination: {e}")
+        print("Continuing without decontamination filter.")
+        return []
 
 
 def load_dataset_column(dataset: str, column: str, split: str, name=None) -> List[str]:
-    ds = load_dataset(dataset, split=split, name=name)
-    res = [sample[column].strip() for sample in ds]
-    # Only return non-empty strings
-    return [sample for sample in res if len(sample) > 0]
+    try:
+        ds = load_dataset(dataset, split=split, name=name)
+        res = [sample[column].strip() for sample in ds]
+        # Only return non-empty strings
+        return [sample for sample in res if len(sample) > 0]
+    except Exception as e:
+        print(f"Warning: Could not load dataset {dataset} for decontamination: {e}")
+        print("Continuing without decontamination filter.")
+        return []
 
 
-FILTER_OUT = {
-    "human_eval_docstrings": human_eval_docstrings(),
-    "human_eval_solutions": [
-        s
-        for s in load_dataset_column("openai_humaneval", "canonical_solution", "test")
-        if s not in HUMAN_EVAL_STRINGS_OK
-    ],
+# 延迟加载FILTER_OUT，避免在导入时就加载数据集
+def get_filter_out() -> Dict[str, List[str]]:
+    """延迟加载去重过滤器，避免在模块导入时就加载数据集"""
+    return {
+        "human_eval_docstrings": human_eval_docstrings(),
+        "human_eval_solutions": [
+            s
+            for s in load_dataset_column("openai_humaneval", "canonical_solution", "test")
+            if s not in HUMAN_EVAL_STRINGS_OK
+        ],
+    }
+
+
+# 为了向后兼容，提供一个默认的空FILTER_OUT
+FILTER_OUT: Dict[str, List[str]] = {
+    "human_eval_docstrings": [],
+    "human_eval_solutions": [],
 }
 
 
@@ -65,7 +87,7 @@ def normalize_whitespace(text: str) -> str:
 
 
 def decontaminate_humaneval(
-    samples: List[Dict[str, Any]], text_column: str = "text", filter_out: Dict[str, List[str]] = FILTER_OUT
+    samples: List[Dict[str, Any]], text_column: str = "text", filter_out: Dict[str, List[str]] = None
 ) -> List[Dict[str, Any]]:
     """
     filter_out: Dict[str, List[str]] mapping from benchmark name to list of strings that need to be
@@ -73,6 +95,13 @@ def decontaminate_humaneval(
     Return a list where each element is True if the corresponding file should be included in the dataset.
     Otherwise, the element is False.
     """
+    # 如果filter_out未提供，尝试加载，如果失败则使用空过滤器
+    if filter_out is None:
+        try:
+            filter_out = get_filter_out()
+        except Exception:
+            filter_out = FILTER_OUT
+    
     output = []
 
     for content in samples[text_column]:

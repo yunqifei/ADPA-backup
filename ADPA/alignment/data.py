@@ -212,14 +212,51 @@ def mix_datasets(
     for (ds, frac), ds_config in zip(dataset_mixer.items(), configs):
         fracs.append(frac)
         for split in splits:
-            try:
-                # Try first if dataset on a Hub repo
-                dataset = load_dataset(ds, ds_config, split=split)
-                if len(dataset) < 10:
-                    raise ValueError
-            except (DatasetGenerationError, ValueError):
-                # If not, check local dataset
-                dataset = load_from_disk(os.path.join(ds, split))
+            # 检查是否是本地路径（绝对路径或相对路径）
+            is_local_path = os.path.isabs(ds) or (os.path.exists(ds) and os.path.isdir(ds))
+            
+            if is_local_path:
+                # 优先尝试从本地加载
+                try:
+                    # 首先尝试使用load_dataset从本地路径加载（支持parquet格式）
+                    # 这会自动识别data/目录下的parquet文件
+                    # 注意：新版本的datasets库不再支持trust_remote_code参数
+                    dataset = load_dataset(ds, split=split)
+                    if len(dataset) < 10:
+                        raise ValueError
+                except (DatasetGenerationError, ValueError, FileNotFoundError, OSError) as e:
+                    # 如果load_dataset失败，尝试load_from_disk（适用于保存的数据集格式）
+                    try:
+                        # 检查是否有split子目录
+                        split_path = os.path.join(ds, split)
+                        if os.path.exists(split_path):
+                            dataset = load_from_disk(split_path)
+                        else:
+                            # 尝试加载整个数据集然后选择split
+                            full_dataset = load_from_disk(ds)
+                            if isinstance(full_dataset, DatasetDict) and split in full_dataset:
+                                dataset = full_dataset[split]
+                            else:
+                                raise ValueError(f"Cannot find split {split} in dataset at {ds}")
+                    except (FileNotFoundError, OSError, ValueError) as e2:
+                        # 如果都失败了，抛出错误
+                        raise ValueError(
+                            f"Failed to load dataset from local path {ds} with split {split}. "
+                            f"Error: {e2}. Please check if the dataset path and split name are correct."
+                        )
+            else:
+                # 不是本地路径，尝试从Hub加载
+                try:
+                    dataset = load_dataset(ds, ds_config, split=split)
+                    if len(dataset) < 10:
+                        raise ValueError
+                except (DatasetGenerationError, ValueError):
+                    # 如果Hub加载失败，尝试本地路径（可能是相对路径）
+                    try:
+                        dataset = load_from_disk(os.path.join(ds, split))
+                    except (FileNotFoundError, OSError):
+                        # 最后尝试使用load_dataset从本地路径加载
+                        dataset = load_dataset(ds, split=split)
 
             # Remove redundant columns to avoid schema conflicts on load
             dataset = dataset.remove_columns([col for col in dataset.column_names if col not in columns_to_keep])

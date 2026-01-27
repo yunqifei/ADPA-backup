@@ -1,0 +1,55 @@
+# Model arguments
+# 修改为你的Mistral-7B模型路径
+model_name_or_path: /home/yunbokun/Models/Teacher/mistralai/Mistral-7B-v0.1
+# Mistral模型使用默认的chat template，如果模型没有chat template，可以取消下面的注释
+# chat_template: "{% for message in messages %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + eos_token }}{% elif message['role'] == 'system' %}{{ '<|system|>\n' + message['content'] + eos_token }}{% elif message['role'] == 'assistant' %}{{ '<|assistant|>\n'  + message['content'] + eos_token }}{% endif %}{% if loop.last and add_generation_prompt %}{{ '<|assistant|>' }}{% endif %}{% endfor %}"
+model_revision: main
+torch_dtype: bfloat16
+use_flash_attention_2: false
+
+# Data training arguments
+# 修改为你的SFT数据集路径
+# 如果数据集在HuggingFace Hub上，使用格式: HuggingFaceH4/deita-10k-v0-sft
+# 如果是本地数据集，使用绝对路径或相对路径
+dataset_mixer:
+  /home/yunbokun/Datasets/sft/deita-10k-v0-sft: 1.0
+  # 或者使用HuggingFace格式: HuggingFaceH4/deita-10k-v0-sft: 1.0
+dataset_splits:
+- train_sft
+- test_sft
+preprocessing_num_workers: 12
+packing: true
+
+# SFT trainer config
+bf16: true
+dataset_kwargs:
+  add_special_tokens: false
+  append_concat_token: false
+do_eval: true
+evaluation_strategy: epoch
+# 2张显卡，调整gradient_accumulation_steps以保持有效batch size
+# 原配置: per_device_batch_size=1, gradient_accumulation=16, 8卡 -> 有效batch=128
+# 2卡配置: per_device_batch_size=1, gradient_accumulation=64 -> 有效batch=128
+gradient_accumulation_steps: 64
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+learning_rate: 2.0e-05
+log_level: info
+logging_steps: 5
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_seq_length: 2048
+max_steps: -1
+num_train_epochs: 3
+# 修改为你的输出目录
+output_dir: /home/yunbokun/ADPA/data/mistral-7b-deita/ref_teacher
+overwrite_output_dir: true
+per_device_eval_batch_size: 1
+per_device_train_batch_size: 1
+push_to_hub: false
+remove_unused_columns: true
+report_to: none
+save_strategy: "no"
+seed: 42
+warmup_ratio: 0.1
