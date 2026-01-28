@@ -1,5 +1,6 @@
+import os
 import sys
-sys.path.append("~/ADPA")
+sys.path.append(os.path.expanduser("~/ADPA"))
 import inspect
 import logging
 import os
