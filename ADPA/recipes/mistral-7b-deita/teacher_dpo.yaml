@@ -8,7 +8,7 @@ torch_dtype: bfloat16
 # 如果数据集在HuggingFace Hub上，使用格式: argilla/dpo-mix-7k
 # 如果是本地数据集，使用绝对路径
 dataset_mixer:
-  argilla/dpo-mix-7k: 1.0
+  "/home/yunbokun/Datasets/preference alignment/dpo-mix-7k": 1.0
 dataset_splits:
 - train
 preprocessing_num_workers: 12

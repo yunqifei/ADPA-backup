@@ -12,11 +12,11 @@ use_flash_attention_2: false
 # 如果数据集在HuggingFace Hub上，使用格式: HuggingFaceH4/deita-10k-v0-sft
 # 如果是本地数据集，使用绝对路径或相对路径
 dataset_mixer:
-  HuggingFaceH4/deita-10k-v0-sft: 1.0
+  "/home/yunbokun/Datasets/sft/deita-10k-v0-sft": 1.0
 dataset_splits:
 - train_sft
 - test_sft
-preprocessing_num_workers: 12
+preprocessing_num_workers: 2
 packing: true
 
 # SFT trainer config
